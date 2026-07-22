@@ -1,5 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useCallback, useState } from "react";
+import axios from "axios";
 import { motion } from "framer-motion";
 import { Upload, FileText, X, CheckCircle2, Loader2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
@@ -25,22 +26,43 @@ function UploadPage() {
       id: `${f.name}-${Date.now()}`, name: f.name, size: f.size, progress: 0, done: false,
     }));
     setFiles((prev) => [...prev, ...next]);
-    next.forEach((q) => simulate(q.id));
+    arr.forEach((file, index) => uploadFile(file, next[index].id));
   }, []);
 
-  const simulate = (id: string) => {
-    const tick = () => {
-      setFiles((prev) => {
-        const upd = prev.map((f) => {
-          if (f.id !== id || f.done) return f;
-          const p = Math.min(100, f.progress + Math.random() * 18 + 6);
-          return { ...f, progress: p, done: p >= 100 };
-        });
-        if (upd.find((f) => f.id === id && !f.done)) setTimeout(tick, 250);
-        return upd;
+  const uploadFile = async (file: File, id: string) => {
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      const response = await axios.post("http://localhost:8000/api/upload", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+        onUploadProgress: (progressEvent) => {
+          const p = progressEvent.total ? Math.round((progressEvent.loaded * 100) / progressEvent.total) : 0;
+          setFiles((prev) =>
+            prev.map((f) => {
+              if (f.id === id) {
+                // Keep at 99% until the server analysis finishes
+                return { ...f, progress: p === 100 ? 99 : p };
+              }
+              return f;
+            })
+          );
+        },
       });
-    };
-    setTimeout(tick, 200);
+
+      // Handle the analysis data (we can store it in a global state or localStorage for now)
+      localStorage.setItem("latestAnalysis", JSON.stringify(response.data.analysis));
+      
+      setFiles((prev) =>
+        prev.map((f) => (f.id === id ? { ...f, progress: 100, done: true } : f))
+      );
+    } catch (error) {
+      console.error("Upload failed", error);
+      toast.error("Upload failed. Make sure the backend is running and you have set the Gemini API key.");
+      setFiles((prev) => prev.filter((f) => f.id !== id));
+    }
   };
 
   const onDrop = (e: React.DragEvent) => {

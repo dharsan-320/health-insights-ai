@@ -30,3 +30,18 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Python backend
+venv/
+__pycache__/
+*.pyc
+
+# Environment variables (API keys, passwords)
+.env
+*.env
+
+# Python cache
+.pytest_cache/
+
+# Uploads / generated files
+uploads/

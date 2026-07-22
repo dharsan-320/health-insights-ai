@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -15,7 +16,21 @@ export const Route = createFileRoute("/_app/analysis")({
 });
 
 function AnalysisPage() {
-  const r = sampleReport;
+  const [reportData, setReportData] = useState(sampleReport);
+
+  useEffect(() => {
+    const latest = localStorage.getItem("latestAnalysis");
+    if (latest) {
+      try {
+        const parsed = JSON.parse(latest);
+        setReportData(parsed);
+      } catch (e) {
+        console.error("Failed to parse analysis data", e);
+      }
+    }
+  }, []);
+
+  const r = reportData;
   return (
     <div className="mx-auto max-w-6xl space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
